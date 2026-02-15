@@ -10,31 +10,20 @@ router = APIRouter(prefix="/history", tags=["History"])
 def history_helper(entry) -> dict:
     return {
         "id": str(entry["_id"]),
+        "user_id": entry["user_id"],   # ADD
         "ingredientName": entry["ingredientName"],
         "action": entry["action"],
         "quantity": entry.get("quantity"),
         "unit": entry.get("unit"),
         "details": entry.get("details"),
-        "timestamp": entry["timestamp"],
+"timestamp": entry["timestamp"].isoformat() if entry.get("timestamp") else None,
     }
 
-
-@router.get("/")
-async def get_history(
-    search: Optional[str] = Query(None),
-    action: Optional[str] = Query(None),
-):
-    query = {}
-
-    if action:
-        query["action"] = action
-
+@router.get("/user/{user_id}")
+async def get_user_history(user_id: str):
     history = []
-    async for entry in history_collection.find(query).sort("timestamp", -1):
-        if search and search.lower() not in entry["ingredientName"].lower():
-            continue
+    async for entry in history_collection.find({"user_id": user_id}).sort("timestamp", -1):
         history.append(history_helper(entry))
-
     return history
 
 

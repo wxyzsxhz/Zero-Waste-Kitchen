@@ -12,6 +12,8 @@ database = client["mydatabase"]
 user_collection = database.get_collection("users")
 ingredient_collection = database.get_collection("ingredients")
 history_collection = database.get_collection("history")
+share_collection = database.get_collection("shares")
+reset_token_collection = database.get_collection("reset_tokens")
 
 def user_helper(user) -> dict:
     return {

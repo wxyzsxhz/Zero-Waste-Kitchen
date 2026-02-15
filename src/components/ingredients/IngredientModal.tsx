@@ -185,8 +185,7 @@ export function IngredientModal({ isOpen, onClose, onSave, ingredient }: Ingredi
                     type="date"
                     value={formData.expiryDate}
                     onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                    className="mt-1.5"
-                    required 
+                    className="mt-1.5" 
                   />
                 </div>
 

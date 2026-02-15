@@ -10,13 +10,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { shareApi } from "@/lib/api";
 
 interface SharePantryDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export function SharePantryDialog({ isOpen, onClose }: SharePantryDialogProps) {
+export function SharePantryDialog({ isOpen, onClose, onSuccess }: SharePantryDialogProps) {
   const [username, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -26,13 +28,27 @@ export function SharePantryDialog({ isOpen, onClose }: SharePantryDialogProps) {
       return;
     }
 
+    // Username validation (alphanumeric and underscores, 3-20 chars)
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    if (!usernameRegex.test(username)) {
+      toast.error("Username must be 3-20 characters and can only contain letters, numbers, and underscores");
+      return;
+    }
+
     setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast.success(`Share request sent to ${username}`);
-    setUsername("");
-    setIsLoading(false);
-    onClose();
+    try {
+      await shareApi.sendRequest(username);
+      toast.success(`Share request sent to ${username}`);
+      setUsername("");
+      onClose();
+      if (onSuccess) onSuccess();
+    } catch (error: any) {
+      console.error("Share request error:", error);
+      const errorMessage = error.response?.data?.detail || "Failed to send request";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

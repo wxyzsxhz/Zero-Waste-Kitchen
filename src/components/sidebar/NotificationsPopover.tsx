@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bell, Check, X, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -10,38 +10,86 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { shareApi } from "@/lib/api"; // Import the real API
 
 interface ShareRequest {
   id: string;
-  fromEmail: string;
-  fromName: string;
-  createdAt: string;
+  from_username: string;
+  from_email: string;
+  time_ago: string;
+  status: string;
+  permission: string;
 }
 
 interface NotificationsPopoverProps {
   isCollapsed: boolean;
 }
 
-// Mock data for demo
-const mockRequests: ShareRequest[] = [
-  { id: "1", fromEmail: "john@example.com", fromName: "John Smith", createdAt: "2 hours ago" },
-  { id: "2", fromEmail: "sarah@example.com", fromName: "Sarah Johnson", createdAt: "1 day ago" },
-];
-
 export function NotificationsPopover({ isCollapsed }: NotificationsPopoverProps) {
-  const [requests, setRequests] = useState<ShareRequest[]>(mockRequests);
+  const [requests, setRequests] = useState<ShareRequest[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleAccept = (id: string) => {
-    const request = requests.find((r) => r.id === id);
-    setRequests((prev) => prev.filter((r) => r.id !== id));
-    toast.success(`Accepted share request from ${request?.fromName}`);
+  // Fetch requests when popover opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchRequests();
+    }
+  }, [isOpen]);
+
+  // Set up polling every 30 seconds if popover is open
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const interval = setInterval(fetchRequests, 30000);
+    return () => clearInterval(interval);
+  }, [isOpen]);
+
+  const fetchRequests = async () => {
+    try {
+      console.log("Fetching share requests...");
+      setLoading(true);
+      const data = await shareApi.getReceivedRequests();
+      setRequests(data || []);
+      console.log("Received requests:", data);
+    } catch (error) {
+      console.error("Failed to fetch requests:", error);
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleReject = (id: string) => {
-    const request = requests.find((r) => r.id === id);
-    setRequests((prev) => prev.filter((r) => r.id !== id));
-    toast.info(`Declined share request from ${request?.fromName}`);
+  const handleAccept = async (requestId: string) => {
+    setProcessingId(requestId);
+    try {
+      console.log("Accepting request:", requestId);
+      await shareApi.acceptRequest(requestId);
+      toast.success("Share request accepted");
+      // Remove from list
+      setRequests(requests.filter(req => req.id !== requestId));
+    } catch (error: any) {
+      console.error("Accept error:", error);
+      toast.error(error.response?.data?.detail || "Failed to accept request");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleDecline = async (requestId: string) => {
+    setProcessingId(requestId);
+    try {
+      console.log("Declining request:", requestId);
+      await shareApi.rejectRequest(requestId);
+      toast.info("Share request declined");
+      setRequests(requests.filter(req => req.id !== requestId));
+    } catch (error: any) {
+      console.error("Decline error:", error);
+      toast.error(error.response?.data?.detail || "Failed to decline request");
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   return (
@@ -91,7 +139,12 @@ export function NotificationsPopover({ isCollapsed }: NotificationsPopoverProps)
         </div>
 
         <div className="max-h-80 overflow-y-auto">
-          {requests.length > 0 ? (
+          {loading ? (
+            <div className="p-8 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">Loading requests...</p>
+            </div>
+          ) : requests.length > 0 ? (
             requests.map((request) => (
               <div
                 key={request.id}
@@ -103,13 +156,13 @@ export function NotificationsPopover({ isCollapsed }: NotificationsPopoverProps)
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm text-foreground truncate">
-                      {request.fromName}
+                      {request.from_username}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {request.fromEmail}
+                      {request.from_email}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {request.createdAt}
+                      {request.time_ago}
                     </p>
                   </div>
                 </div>
@@ -119,17 +172,27 @@ export function NotificationsPopover({ isCollapsed }: NotificationsPopoverProps)
                     variant="hero"
                     className="flex-1"
                     onClick={() => handleAccept(request.id)}
+                    disabled={processingId === request.id}
                   >
-                    <Check className="h-4 w-4 mr-1" />
+                    {processingId === request.id ? (
+                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1" />
+                    ) : (
+                      <Check className="h-4 w-4 mr-1" />
+                    )}
                     Accept
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     className="flex-1"
-                    onClick={() => handleReject(request.id)}
+                    onClick={() => handleDecline(request.id)}
+                    disabled={processingId === request.id}
                   >
-                    <X className="h-4 w-4 mr-1" />
+                    {processingId === request.id ? (
+                      <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-1" />
+                    ) : (
+                      <X className="h-4 w-4 mr-1" />
+                    )}
                     Decline
                   </Button>
                 </div>

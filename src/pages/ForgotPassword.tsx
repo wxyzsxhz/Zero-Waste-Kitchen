@@ -1,27 +1,49 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Package, ArrowLeft, Mail, CheckCircle } from "lucide-react";
+import { ArrowLeft, Mail, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
 import logo from "@/assets/logo.png";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement actual password reset logic
-    console.log("Password reset for:", email);
-    setIsSubmitted(true);
+    
+    if (!email) {
+      toast.error("Please enter your email");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await api.post("/auth/forgot-password/request", { email });
+      
+      // Show success message
+      setIsSubmitted(true);
+      toast.success("Reset instructions sent to your email");
+      
+    } catch (error: any) {
+      console.error("Forgot password error:", error);
+      // Still show success for security (don't reveal if email exists)
+      setIsSubmitted(true);
+      toast.success("If your email is registered, you will receive reset instructions");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen gradient-hero flex flex-col">
-      {/* Header */}
       <header className="p-4">
         <Link 
           to="/signin" 
@@ -32,7 +54,6 @@ export default function ForgotPassword() {
         </Link>
       </header>
 
-      {/* Main Content */}
       <div className="flex-1 flex items-center justify-center px-4 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -40,7 +61,6 @@ export default function ForgotPassword() {
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
-          {/* Logo */}
           <div className="flex items-center justify-center gap-3 mb-8">
             <img alt="Zero-Waste Kitchen logo" className="h-12 w-12 rounded-xl object-cover" src={logo} />
             <span className="font-serif text-2xl font-semibold text-foreground">Zero-Waste Kitchen</span>
@@ -69,12 +89,13 @@ export default function ForgotPassword() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="h-11"
+                        disabled={isLoading}
                         required
                       />
                     </div>
 
-                    <Button type="submit" variant="hero" className="w-full h-11">
-                      Send Reset Link
+                    <Button type="submit" variant="hero" className="w-full h-11" disabled={isLoading}>
+                      {isLoading ? "Sending..." : "Send Reset Link"}
                     </Button>
                   </form>
 
@@ -114,7 +135,11 @@ export default function ForgotPassword() {
                     <Button 
                       variant="ghost" 
                       className="w-full"
-                      onClick={() => setIsSubmitted(false)}
+                      onClick={() => {
+                        setIsSubmitted(false);
+                        setEmail("");
+                      }}
+                      disabled={isLoading}
                     >
                       Didn't receive it? Try again
                     </Button>

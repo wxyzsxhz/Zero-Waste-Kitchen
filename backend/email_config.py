@@ -1,7 +1,7 @@
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
-from pydantic import EmailStr
 import os
 
+# Email configuration
 conf = ConnectionConfig(
     MAIL_USERNAME="zerowastekitchenteam@gmail.com",
     MAIL_PASSWORD="eixd jour krjk ksaf",
@@ -14,3 +14,6 @@ conf = ConnectionConfig(
     USE_CREDENTIALS=True,
     VALIDATE_CERTS=True
 )
+
+# Create FastMail instance
+fm = FastMail(conf)

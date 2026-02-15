@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Edit2, Trash2, Carrot, Apple, Milk, Drumstick, Wheat, Flame, MoreVertical, Box, LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +26,7 @@ interface IngredientCardProps {
   onEdit: (ingredient: Ingredient) => void;
   onDelete: (id: string) => void;
   index: number;
+  isEditable?: boolean;
 }
 
 const categoryColors: Record<string, string> = {
@@ -47,9 +49,9 @@ const categoryIcons: Record<string, LucideIcon> = {
   "Other": Box,
 };
 
-export function IngredientCard({ ingredient, onEdit, onDelete, index }: IngredientCardProps) {
+export function IngredientCard({ ingredient, onEdit, onDelete, index, isEditable = true }: IngredientCardProps) {
   const isLowStock = ingredient.quantity <= 2;
-  const isExpiringSoon = ingredient.expiryDate && 
+  const isExpiringSoon = ingredient.expiryDate &&
     new Date(ingredient.expiryDate) <= new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
 
   const CategoryIcon = categoryIcons[ingredient.category] || categoryIcons["Other"];
@@ -88,8 +90,8 @@ export function IngredientCard({ ingredient, onEdit, onDelete, index }: Ingredie
             <h3 className="font-serif font-semibold text-foreground truncate pr-8">
               {ingredient.name}
             </h3>
-            <Badge 
-              variant="secondary" 
+            <Badge
+              variant="secondary"
               className={cn(
                 "text-xs font-normal w-fit max-w-full truncate",
                 categoryColors[ingredient.category] || categoryColors["Other"]
@@ -137,13 +139,25 @@ export function IngredientCard({ ingredient, onEdit, onDelete, index }: Ingredie
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-32">
-            <DropdownMenuItem onClick={() => onEdit(ingredient)} className="cursor-pointer">
+            <DropdownMenuItem
+              onClick={() => isEditable && onEdit(ingredient)}
+              disabled={!isEditable}
+              className={cn(
+                "cursor-pointer",
+                !isEditable && "opacity-50 cursor-not-allowed"
+              )}
+            >
+
               <Edit2 className="h-4 w-4 mr-2" />
               Edit
             </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => onDelete(ingredient.id)} 
-              className="cursor-pointer text-destructive focus:text-destructive"
+            <DropdownMenuItem
+              onClick={() => isEditable && onDelete(ingredient.id)}
+              disabled={!isEditable}
+              className={cn(
+                "cursor-pointer text-destructive focus:text-destructive",
+                !isEditable && "opacity-50 cursor-not-allowed text-muted-foreground"
+              )}
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete

@@ -38,7 +38,8 @@ export default function History() {
   // Fetch history from backend
   useEffect(() => {
     const fetchHistory = async () => {
-      const res = await api.get("/history");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const res = await api.get(`/history/user/${user.id}`);
       setHistory(res.data);
     };
     fetchHistory();
@@ -70,7 +71,10 @@ export default function History() {
   const stats = useMemo(() => {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
-    const thisWeek = history.filter((e) => new Date(e.timestamp) >= weekAgo);
+
+    const thisWeek = history.filter((e) =>
+      new Date(e.timestamp) >= weekAgo
+    );
 
     return {
       added: thisWeek.filter((e) => e.action === "added").length,
@@ -95,36 +99,37 @@ export default function History() {
         </p>
       </div>
 
-      {/* Weekly Stats */}
+      {/* Weekly Stats Pills */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="grid grid-cols-3 gap-4 mb-8"
+        className="flex flex-wrap gap-3 mb-6"
       >
-        <div className="bg-card rounded-xl p-4 border border-border shadow-soft">
-          <div className="flex items-center gap-2 mb-1">
-            <ArrowUpRight className="h-4 w-4 text-sage-dark" />
-            <p className="text-sm text-muted-foreground">Added</p>
+        <div className="flex items-center gap-4">
+          <span className="text-sm font-medium text-muted-foreground">This week:</span>
+          <div className="flex flex-wrap gap-3">
+            {/* Added Pill */}
+            <div className="flex items-center gap-2 bg-sage/50 backdrop-blur-sm rounded-full px-4 py-1.5 border border-sage-dark/40 shadow-soft">
+              <ArrowUpRight className="h-4 w-4 text-sage-dark" />
+              <span className="text-xs font-medium text-olive uppercase tracking-wider">Added</span>
+              <span className="text-sm font-bold text-olive">{stats.added}</span>
+            </div>
+
+            {/* Used Pill */}
+            <div className="flex items-center gap-2 bg-honey/5 backdrop-blur-sm rounded-full px-4 py-1.5 border border-honey/60 shadow-soft">
+              <ArrowDownRight className="h-4 w-4 text-honey" />
+              <span className="text-xs font-medium text-honey uppercase tracking-wider">Used</span>
+              <span className="text-sm font-bold text-honey">{stats.used}</span>
+            </div>
+
+            {/* Updated Pill */}
+            <div className="flex items-center gap-2 bg-card/50 backdrop-blur-sm rounded-full px-4 py-1.5 border border-border shadow-soft">
+              <Edit2 className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Updated</span>
+              <span className="text-sm font-bold text-foreground">{stats.updated}</span>
+            </div>
           </div>
-          <p className="text-2xl font-serif font-bold text-foreground">{stats.added}</p>
-          <p className="text-xs text-muted-foreground">this week</p>
-        </div>
-        <div className="bg-card rounded-xl p-4 border border-border shadow-soft">
-          <div className="flex items-center gap-2 mb-1">
-            <ArrowDownRight className="h-4 w-4 text-honey" />
-            <p className="text-sm text-muted-foreground">Used</p>
-          </div>
-          <p className="text-2xl font-serif font-bold text-foreground">{stats.used}</p>
-          <p className="text-xs text-muted-foreground">this week</p>
-        </div>
-        <div className="bg-card rounded-xl p-4 border border-border shadow-soft">
-          <div className="flex items-center gap-2 mb-1">
-            <Edit2 className="h-4 w-4 text-primary" />
-            <p className="text-sm text-muted-foreground">Updated</p>
-          </div>
-          <p className="text-2xl font-serif font-bold text-foreground">{stats.updated}</p>
-          <p className="text-xs text-muted-foreground">this week</p>
         </div>
       </motion.div>
 

@@ -15,3 +15,8 @@ class LoginModel(BaseModel):
 class ForgotPasswordModel(BaseModel):
     email: EmailStr
     new_password: str = Field(..., min_length=8)
+
+# ADD THIS NEW CLASS
+class ChangePasswordModel(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=8)

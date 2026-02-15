@@ -8,3 +8,4 @@ class IngredientModel(BaseModel):
     category: str
     expiryDate: Optional[str] = None
     notes: Optional[str] = None
+    user_id: str

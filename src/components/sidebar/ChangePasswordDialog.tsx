@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
+import { useUser } from "@/contexts/UserContext";
 
 interface ChangePasswordDialogProps {
   isOpen: boolean;
@@ -18,6 +20,7 @@ interface ChangePasswordDialogProps {
 }
 
 export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogProps) {
+  const { user } = useUser();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -26,42 +29,93 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error("Please fill in all fields");
+  // Validation
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    toast.error("Please fill in all fields");
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    toast.error("New passwords do not match");
+    return;
+  }
+
+  if (newPassword.length < 8) {
+    toast.error("Password must be at least 8 characters");
+    return;
+  }
+
+  setIsLoading(true);
+
+  try {
+    const userData = JSON.parse(localStorage.getItem("user") || "{}");
+    if (!userData?.username) {
+      toast.error("User not found");
       return;
     }
 
-    if (newPassword !== confirmPassword) {
-      toast.error("New passwords do not match");
-      return;
-    }
+    // Create Basic Auth header
+    const authHeader = btoa(`${userData.username}:${currentPassword}`);
 
-    if (newPassword.length < 8) {
-      toast.error("Password must be at least 8 characters");
-      return;
-    }
+    // Make API call with Basic Auth
+    const response = await api.post(
+      "/change-password",
+      { current_password: currentPassword, new_password: newPassword },
+      { headers: { Authorization: `Basic ${authHeader}` } }
+    );
 
-    setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast.success("Password changed successfully");
+    toast.success(response.data.message || "Password changed successfully");
+
+    // Reset form and close
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
+    onClose();
+
+  } catch (error: any) {
+    console.error("Password change error:", error);
+
+    const errorMessage =
+      error.response?.data?.detail ||
+      error.message ||
+      "Failed to change password";
+    toast.error(errorMessage);
+
+  } finally {
     setIsLoading(false);
+  }
+};
+
+  // Reset form when dialog closes
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      // Reset form when closing
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
+    }
     onClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-serif">Change Password</DialogTitle>
           <DialogDescription>
             Enter your current password and choose a new one.
+            {user?.email && (
+              <span className="block mt-1 text-xs text-muted-foreground">
+                Logged in as: {user.email}
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -77,6 +131,8 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 className="pl-10 pr-10"
                 placeholder="Enter current password"
+                disabled={isLoading}
+                required
               />
               <Button
                 type="button"
@@ -84,6 +140,7 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
                 size="icon"
                 className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                 onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                disabled={isLoading}
               >
                 {showCurrentPassword ? (
                   <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -105,6 +162,8 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="pl-10 pr-10"
                 placeholder="Enter new password"
+                disabled={isLoading}
+                required
               />
               <Button
                 type="button"
@@ -112,6 +171,7 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
                 size="icon"
                 className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                 onClick={() => setShowNewPassword(!showNewPassword)}
+                disabled={isLoading}
               >
                 {showNewPassword ? (
                   <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -120,6 +180,9 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
                 )}
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Minimum 8 characters
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -133,6 +196,8 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="pl-10 pr-10"
                 placeholder="Confirm new password"
+                disabled={isLoading}
+                required
               />
               <Button
                 type="button"
@@ -140,6 +205,7 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
                 size="icon"
                 className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                disabled={isLoading}
               >
                 {showConfirmPassword ? (
                   <EyeOff className="h-4 w-4 text-muted-foreground" />
@@ -163,3 +229,4 @@ export function ChangePasswordDialog({ isOpen, onClose }: ChangePasswordDialogPr
     </Dialog>
   );
 }
+

@@ -1,11 +1,15 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 from passlib.context import CryptContext
 from fastapi.responses import JSONResponse
+from bson import ObjectId
 
-from models.signup_struct import UserModel, LoginModel, ForgotPasswordModel
+from models.signup_struct import UserModel, LoginModel, ForgotPasswordModel, ChangePasswordModel
 from database import user_collection, user_helper
 
-router = APIRouter()  # <-- Use router instead of FastAPI app
+import base64
+
+
+router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # ------------------ Password Utils ------------------
@@ -41,19 +45,80 @@ async def login(data: LoginModel):
     if not user or not verify_password(data.password, user["password"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
+    # Create auth token (basic auth for now)
+    auth_string = f"{user['username']}:{data.password}"
+    auth_token = base64.b64encode(auth_string.encode()).decode()
+    
     return {
-        "message": f"Welcome {user['username']}!",
-        "username": user["username"],
-        "email": user["email"]
-    }
+    "message": f"Welcome {user['username']}!",
+    "id": str(user["_id"]),
+    "username": user["username"],
+    "email": user["email"],
+    "auth_token": auth_token
+}
+
+# ------------------ CHANGE PASSWORD ENDPOINT ------------------
+
+@router.post("/change-password")
+async def change_password(
+    password_data: ChangePasswordModel,
+    authorization: str = Header(...)
+):
+    try:
+        # Check if authorization header exists and is Basic
+        if not authorization or not authorization.startswith("Basic "):
+            raise HTTPException(status_code=401, detail="Invalid authorization header")
+        
+        # Decode base64 credentials
+        auth_base64 = authorization.replace("Basic ", "")
+        try:
+            decoded_bytes = base64.b64decode(auth_base64)
+            decoded_string = decoded_bytes.decode()
+            username, password = decoded_string.split(":", 1)
+        except:
+            raise HTTPException(status_code=401, detail="Invalid authorization token")
+        
+        # Find user by username
+        user = await user_collection.find_one({"username": username})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Verify current password
+        if not verify_password(password_data.current_password, user["password"]):
+            raise HTTPException(status_code=400, detail="Current password is incorrect")
+        
+        # Hash new password
+        new_hashed_password = hash_password(password_data.new_password)
+        
+        # Update password in database
+        await user_collection.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"password": new_hashed_password}}
+        )
+        
+        return {"message": "Password updated successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ------------------ Forgot Password ------------------
 
 @router.post("/forgot-password")
 async def forgot_password(data: ForgotPasswordModel):
     user = await user_collection.find_one({"email": data.email})
+    
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="Email not found")
+    
+    # Hash new password
     new_hashed_password = hash_password(data.new_password)
-    await user_collection.update_one({"email": data.email}, {"$set": {"password": new_hashed_password}})
-    return {"message": "Password updated successfully"}
+    
+    # Update password in database
+    await user_collection.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"password": new_hashed_password}}
+    )
+    
+    return {"message": "Password reset successfully"}

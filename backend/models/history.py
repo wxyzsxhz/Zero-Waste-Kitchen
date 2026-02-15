@@ -4,6 +4,7 @@ from datetime import datetime
 
 
 class HistoryModel(BaseModel):
+    user_id: str
     ingredientName: str
     action: str  # "added" | "updated" | "deleted" | "used"
     quantity: Optional[float] = None

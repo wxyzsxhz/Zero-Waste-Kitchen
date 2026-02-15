@@ -11,6 +11,7 @@ import RecipeDetail from "./pages/RecipeDetail";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import { AppLayout } from "./components/layout/AppLayout";
 import { UserProvider } from "./contexts/UserContext";
@@ -20,7 +21,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <UserProvider> {/* ✅ Wrap everything that needs user context */}
+      <UserProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} /> {/* ADD THIS ROUTE */}
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/history" element={<History />} />

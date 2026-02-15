@@ -31,13 +31,17 @@ export default function SignIn() {
       const data = await response.json();
 
       if (!response.ok) {
-        const data = await response.json();
         alert(data.detail || "Login failed"); // show backend error
         return;
       }
 
       // ✅ Save user in context
-      const userData = { username: data.username, email: data.email };
+const userData = {
+  id: data.id,                 // ✅ ADD THIS
+  username: data.username,
+  email: data.email,
+  auth_token: data.auth_token  // optional but good to store
+};
       setUser(userData);
 
       // ✅ Save user in localStorage
