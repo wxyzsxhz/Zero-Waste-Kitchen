@@ -5,7 +5,7 @@ on:
     # Runs every day at 09:00 AM Asia/Yangon
     # Asia/Yangon is UTC+6:30
     # 09:00 AM Yangon = 02:30 UTC (previous day)
-    - cron: "30 2 * * *"
+    #- cron: "30 2 * * *"
   workflow_dispatch: {}  # allows manual run
 
 jobs:
