@@ -30,11 +30,11 @@ jobs:
       - name: Run expiry check
         working-directory: backend
         env:
-          MONGO_URI: ${{ secrets.MONGO_URI }}
-          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
-          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
-          MAIL_FROM: ${{ secrets.MAIL_FROM }}
-          MAIL_SERVER: ${{ secrets.MAIL_SERVER }}
-          MAIL_PORT: ${{ secrets.MAIL_PORT }}
+            MONGO_DETAILS: ${{ secrets.MONGO_DETAILS }}
+            MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+            MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+            MAIL_FROM: ${{ secrets.MAIL_FROM }}
+            MAIL_SERVER: ${{ secrets.MAIL_SERVER }}
+            MAIL_PORT: ${{ secrets.MAIL_PORT }}
         run: |
-          python -m jobs.run_expiry_check
+            python -m jobs.run_expiry_check
