@@ -1,0 +1,40 @@
+name: Expiry Email Notifier
+
+on:
+  schedule:
+    # Runs every day at 09:00 AM Asia/Yangon
+    # Asia/Yangon is UTC+6:30
+    # 09:00 AM Yangon = 02:30 UTC (previous day)
+    - cron: "30 2 * * *"
+  workflow_dispatch: {}  # allows manual run
+
+jobs:
+  send-expiry-emails:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run expiry check
+        working-directory: backend
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_SERVER: ${{ secrets.MAIL_SERVER }}
+          MAIL_PORT: ${{ secrets.MAIL_PORT }}
+        run: |
+          python -m jobs.run_expiry_check
